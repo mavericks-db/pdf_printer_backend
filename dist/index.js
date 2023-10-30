@@ -9,6 +9,11 @@ require("dotenv/config");
 const port = process.env.PORT;
 // express instance
 const app = (0, express_1.default)();
+// middleware
+app.use(express_1.default.json());
+app.use(express_1.default.urlencoded({ extended: true }));
+const docsmitRouter_1 = __importDefault(require("./routes/docsmitRouter"));
+app.use('/api', docsmitRouter_1.default);
 // home route
 app.get('/', (req, res) => {
     res.status(200).send('Express');
