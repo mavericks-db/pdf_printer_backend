@@ -6,6 +6,10 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = __importDefault(require("express"));
 require("dotenv/config");
 const express_session_1 = __importDefault(require("express-session"));
+const cors_1 = __importDefault(require("cors"));
+const multer_1 = __importDefault(require("multer"));
+const storage = multer_1.default.memoryStorage();
+const upload = (0, multer_1.default)({ storage: storage });
 // env variables
 const port = process.env.PORT;
 // express instance
@@ -18,6 +22,7 @@ app.use((0, express_session_1.default)({
     resave: false,
     saveUninitialized: true,
 }));
+app.use((0, cors_1.default)());
 const docsmitRouter_1 = __importDefault(require("./routes/docsmitRouter"));
 app.use('/api', docsmitRouter_1.default);
 // home route

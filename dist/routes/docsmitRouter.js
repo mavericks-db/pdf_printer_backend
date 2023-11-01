@@ -15,6 +15,9 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = __importDefault(require("express"));
 const dotenv_1 = __importDefault(require("dotenv"));
 dotenv_1.default.config();
+const multer_1 = __importDefault(require("multer"));
+const storage = multer_1.default.memoryStorage();
+const upload = (0, multer_1.default)({ storage: storage });
 const router = express_1.default.Router();
 // env variables
 const docsmitCredential = {
@@ -25,7 +28,7 @@ const docsmitCredential = {
 // middleware
 const getToken = (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
     try {
-        const response = yield fetch(`${process.env.BASEURL}/token`, {
+        const response = yield fetch(`${process.env.BASEAPI}/token`, {
             method: 'post',
             headers: {
                 'Content-Type': 'application/json',
@@ -45,40 +48,48 @@ const getToken = (req, res, next) => __awaiter(void 0, void 0, void 0, function*
     }
     next();
 });
-// middleware
-const addTokenToHeaders = (req, res, next) => {
-    if (req.session.token) {
-        req.headers['Authorization'] = `Basic ${Buffer.from(`${req.session.token}:`).toString('base64')}`;
-    }
-    next();
-};
 // create a new message
-router.post('/message/new', getToken, addTokenToHeaders, (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    const { title, rtnName, rtnAddress1 } = req.body;
-    const messageObject = {
-        title,
-        rtnName,
-        rtnAddress1,
-    };
+router.post('/messages/new', [getToken, upload.single('pdf')], (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
-        const response = yield fetch(`${process.env.BASEURL}/message/new`, {
+        const { title, rtnName, rtnAddress1 } = req.body;
+        const messageObject = {
+            title,
+            rtnName,
+            rtnAddress1,
+            rtnState: 'WA',
+            rtnZip: '12345-1234',
+        };
+        // create a new message
+        const response = yield fetch(`${process.env.BASEAPI}/messages/new`, {
             method: 'post',
             headers: {
                 'Content-Type': 'application/json',
+                Authorization: `Basic ${Buffer.from(`${req.session.token}:`).toString('base64')}`,
             },
             body: JSON.stringify(messageObject),
         });
+        if (!response.ok) {
+            throw new Error('Failed to create a new message');
+        }
         const data = yield response.json();
-        res.status(200).json({ data: data, messageObject: messageObject });
+        req.session.messageID = data.messageID;
+        // upload the file
+        const response2 = yield fetch(`${process.env.BASEAPI}/messages/${req.session.messageID}/upload`, {
+            method: 'post',
+            headers: {
+                'Content-Type': 'multipart/form-data',
+                Authorization: `Basic ${Buffer.from(`${req.session.token}:`).toString('base64')}`,
+            },
+            body: req.file,
+        });
+        if (!response2.ok) {
+            throw new Error('Failed to upload the file');
+        }
+        res.status(200).json({ msg: 'File uploaded successfully.' });
     }
     catch (error) {
         console.error('Error:', error);
         res.status(500).json({ error: 'Internal server error' });
     }
-    // res.status(200).json({
-    //   status: 'Message successfully created.',
-    //   messageID: 'placeholder for message ID',
-    //   token: req.session.token,
-    // });
 }));
 exports.default = router;

@@ -1,10 +1,15 @@
 import express from 'express';
 import 'dotenv/config';
 import session from 'express-session';
+import cors from 'cors';
+import multer from 'multer';
+const storage = multer.memoryStorage();
+const upload = multer({ storage: storage });
 
 declare module 'express-session' {
   interface SessionData {
     token: String;
+    messageID: String;
   }
 }
 
@@ -24,6 +29,7 @@ app.use(
     saveUninitialized: true,
   }),
 );
+app.use(cors());
 import docsmitRouter from './routes/docsmitRouter';
 app.use('/api', docsmitRouter);
 
