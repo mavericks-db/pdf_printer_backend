@@ -51,7 +51,8 @@ const getToken = (req, res, next) => __awaiter(void 0, void 0, void 0, function*
 // create a new message
 router.post('/messages/new', [getToken, upload.single('pdf')], (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
-        const { title, rtnName, rtnAddress1 } = req.body;
+        const { title, rtnName, rtnAddress1, sendType, envelope } = req.body;
+        console.log(req.body);
         const messageObject = {
             title,
             rtnName,
@@ -85,7 +86,31 @@ router.post('/messages/new', [getToken, upload.single('pdf')], (req, res) => __a
         if (!response2.ok) {
             throw new Error('Failed to upload the file');
         }
-        res.status(200).json({ msg: 'File uploaded successfully.' });
+        res.status(200).json({
+            msg: 'File uploaded successfully.',
+            msgID: req.session.messageID,
+            token: req.session.token,
+        });
+    }
+    catch (error) {
+        console.error('Error:', error);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+}));
+// get message details
+router.post('/messages/details', (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        const { id, token } = req.body;
+        const response = yield fetch(`${process.env.BASEAPI}/messages/${id}`, {
+            headers: {
+                Authorization: `Basic ${Buffer.from(`${token}:`).toString('base64')}`,
+            },
+        });
+        if (!response.ok) {
+            throw new Error('Failed to get message details');
+        }
+        const data = yield response.json();
+        res.status(200).json({ data: data });
     }
     catch (error) {
         console.error('Error:', error);
